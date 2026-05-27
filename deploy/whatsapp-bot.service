@@ -1,0 +1,17 @@
+# /etc/systemd/system/whatsapp-bot.service
+[Unit]
+Description=AvlokAI WhatsApp Bot (FastAPI/uvicorn)
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=avlok
+Group=avlok
+WorkingDirectory=/opt/avlok-wa/backend
+EnvironmentFile=/opt/avlok-wa/backend/.env
+ExecStart=/opt/avlok-wa/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
