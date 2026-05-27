@@ -126,6 +126,9 @@ async def send_template(data: SendTemplateIn, _: str = Depends(get_current_agent
                         session: AsyncSession = Depends(get_session)):
     phone = _normalize_phone(data.phone)
     conv = await models.get_or_create_conversation(session, phone, None)
+    if await models.has_template_message(session, conv["id"]):
+        raise HTTPException(409, "A template has already been sent to this number")
+
     sent = await whatsapp.send_template(
         phone, data.template_name, data.language, data.body_params
     )
