@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react'
-import { Settings, LogOut, Bot, BotOff } from 'lucide-react'
+import { Settings, LogOut, Bot, BotOff, Phone, Copy, Check } from 'lucide-react'
 import { api, clearToken, openSocket } from './api'
 import ConversationList from './ConversationList'
 import ChatThread from './ChatThread'
@@ -13,6 +13,7 @@ export default function Dashboard({ onLogout }) {
   const [messages, setMessages] = useState([])
   const [showSettings, setShowSettings] = useState(false)
   const [showTemplate, setShowTemplate] = useState(false)
+  const [copiedPhoneFor, setCopiedPhoneFor] = useState(null)
   const activeRef = useRef(null)
   activeRef.current = activeId
 
@@ -50,6 +51,13 @@ export default function Dashboard({ onLogout }) {
     refreshConversations()
   }
 
+  const copyPhone = async () => {
+    if (!active?.wa_id) return
+    await navigator.clipboard.writeText(active.wa_id)
+    setCopiedPhoneFor(active.id)
+    window.setTimeout(() => setCopiedPhoneFor(null), 1500)
+  }
+
   const logout = () => { clearToken(); onLogout() }
   const onSent = (m) =>
     setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]))
@@ -60,9 +68,29 @@ export default function Dashboard({ onLogout }) {
                         onSelect={setActiveId} onNew={() => setShowTemplate(true)} />
       <div className="flex-1 flex flex-col">
         <div className="h-14 border-b bg-white flex items-center justify-between px-4">
-          <span className="font-semibold text-slate-800">
-            {active ? (active.name || active.wa_id) : 'Select a conversation'}
-          </span>
+          {active ? (
+            <div className="min-w-0">
+              <span className="block font-semibold text-slate-800 truncate">
+                {active.name || active.wa_id}
+              </span>
+              <div className="mt-0.5 flex items-center gap-1 text-xs text-slate-500">
+                <span className="min-w-0 flex items-center gap-1 truncate">
+                  <Phone size={12} />
+                  {active.wa_id}
+                </span>
+                <button
+                  type="button"
+                  onClick={copyPhone}
+                  className="shrink-0 rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                  title="Copy phone number"
+                >
+                  {copiedPhoneFor === active.id ? <Check size={12} /> : <Copy size={12} />}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <span className="font-semibold text-slate-800">Select a conversation</span>
+          )}
           <div className="flex items-center gap-2">
             {active && (
               <button onClick={togglePause}
