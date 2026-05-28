@@ -49,11 +49,11 @@ export const api = {
       body: JSON.stringify({ paused }),
     }),
   templates: () => req('/api/templates'),
-  sendTemplate: (phone, template_name, language, body_params) =>
+  sendTemplate: (phone, template_name, language, body_params, header_image_url) =>
     req('/api/send-template', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone, template_name, language, body_params }),
+      body: JSON.stringify({ phone, template_name, language, body_params, header_image_url }),
     }),
   getSettings: () => req('/api/settings'),
   saveSettings: (system_prompt, openai_model) =>

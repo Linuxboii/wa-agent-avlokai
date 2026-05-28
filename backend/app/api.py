@@ -34,6 +34,7 @@ class SendTemplateIn(BaseModel):
     template_name: str
     language: str
     body_params: list[str] | None = None
+    header_image_url: str | None = None
 
 
 def _normalize_phone(raw: str) -> str:
@@ -130,7 +131,8 @@ async def send_template(data: SendTemplateIn, _: str = Depends(get_current_agent
         raise HTTPException(409, "A template has already been sent to this number")
 
     sent = await whatsapp.send_template(
-        phone, data.template_name, data.language, data.body_params
+        phone, data.template_name, data.language, data.body_params,
+        data.header_image_url
     )
     wamid = sent.get("messages", [{}])[0].get("id")
     body = f"[template: {data.template_name}]"

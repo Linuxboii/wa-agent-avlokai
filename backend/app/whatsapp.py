@@ -105,13 +105,22 @@ async def list_templates() -> list[dict]:
 
 
 async def send_template(to: str, name: str, language: str,
-                        body_params: list[str] | None = None) -> dict:
+                        body_params: list[str] | None = None,
+                        header_image_url: str | None = None) -> dict:
     template: dict = {"name": name, "language": {"code": language}}
+    components = []
+    if header_image_url:
+        components.append({
+            "type": "header",
+            "parameters": [{"type": "image", "image": {"link": header_image_url}}],
+        })
     if body_params:
-        template["components"] = [{
+        components.append({
             "type": "body",
             "parameters": [{"type": "text", "text": p} for p in body_params],
-        }]
+        })
+    if components:
+        template["components"] = components
     payload = {"messaging_product": "whatsapp", "to": to,
                "type": "template", "template": template}
     async with httpx.AsyncClient(timeout=30) as client:
