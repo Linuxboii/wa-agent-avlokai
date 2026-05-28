@@ -151,16 +151,18 @@ async def is_paused(session: AsyncSession, conversation_id: int) -> bool:
 async def add_message(session: AsyncSession, conversation_id: int, direction: str,
                       msg_type: str = "text", body: Optional[str] = None,
                       media_url: Optional[str] = None, transcription: Optional[str] = None,
-                      wa_message_id: Optional[str] = None) -> Optional[dict]:
+                      wa_message_id: Optional[str] = None,
+                      status: Optional[str] = None) -> Optional[dict]:
     row = (await session.execute(
         text("""INSERT INTO messages
-                   (conversation_id, direction, msg_type, body, media_url, transcription, wa_message_id)
-                VALUES (:cid, :dir, :mt, :body, :media, :trans, :wamid)
+                   (conversation_id, direction, msg_type, body, media_url, transcription, wa_message_id, status)
+                VALUES (:cid, :dir, :mt, :body, :media, :trans, :wamid, :status)
                 ON CONFLICT (wa_message_id) WHERE wa_message_id IS NOT NULL DO NOTHING
                 RETURNING id, conversation_id, direction, msg_type, body, media_url,
-                          transcription, wa_message_id, created_at"""),
+                          transcription, wa_message_id, status, created_at"""),
         {"cid": conversation_id, "dir": direction, "mt": msg_type, "body": body,
-         "media": media_url, "trans": transcription, "wamid": wa_message_id},
+         "media": media_url, "trans": transcription, "wamid": wa_message_id,
+         "status": status or ("sent" if direction == "out" else None)},
     )).mappings().first()
     if row:
         await session.execute(
@@ -173,12 +175,24 @@ async def add_message(session: AsyncSession, conversation_id: int, direction: st
 
 async def get_messages(session: AsyncSession, conversation_id: int, limit: int = 200) -> list[dict]:
     rows = (await session.execute(
-        text("""SELECT id, direction, msg_type, body, media_url, transcription, created_at
+        text("""SELECT id, direction, msg_type, body, media_url, transcription,
+                       wa_message_id, status, created_at
                 FROM messages WHERE conversation_id = :id
                 ORDER BY created_at ASC LIMIT :lim"""),
         {"id": conversation_id, "lim": limit},
     )).mappings().all()
     return [dict(r) for r in rows]
+
+
+async def update_message_status(session: AsyncSession, wa_message_id: str, status: str) -> Optional[dict]:
+    row = (await session.execute(
+        text("""UPDATE messages SET status = :status
+                WHERE wa_message_id = :wamid
+                RETURNING id, conversation_id, status"""),
+        {"wamid": wa_message_id, "status": status},
+    )).mappings().first()
+    await session.commit()
+    return dict(row) if row else None
 
 
 async def has_template_message(session: AsyncSession, conversation_id: int) -> bool:

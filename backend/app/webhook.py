@@ -45,6 +45,8 @@ async def _process(payload: dict) -> None:
                         for c in value.get("contacts", [])}
             for msg in value.get("messages", []):
                 await _handle_message(msg, contacts)
+            for st in value.get("statuses", []):
+                await _handle_status(st)
 
 
 async def _handle_message(msg: dict, contacts: dict) -> None:
@@ -116,6 +118,21 @@ async def _handle_message(msg: dict, contacts: dict) -> None:
         )
         if out:
             await manager.broadcast("message", {"conversation_id": conv["id"], **out})
+
+
+async def _handle_status(st: dict) -> None:
+    wa_message_id = st.get("id")
+    status = st.get("status")  # sent, delivered, read, failed
+    if not wa_message_id or not status:
+        return
+    async with SessionLocal() as session:
+        updated = await models.update_message_status(session, wa_message_id, status)
+    if updated:
+        await manager.broadcast("status_update", {
+            "message_id": updated["id"],
+            "conversation_id": updated["conversation_id"],
+            "status": updated["status"],
+        })
 
 
 async def _save_media(media_id: str) -> str:

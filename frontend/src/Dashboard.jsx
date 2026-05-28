@@ -36,6 +36,11 @@ export default function Dashboard({ onLogout }) {
           setMessages((prev) =>
             prev.some((m) => m.id === evt.data.id) ? prev : [...prev, evt.data])
         }
+      } else if (evt.event === 'status_update') {
+        if (evt.data.conversation_id === activeRef.current) {
+          setMessages((prev) => prev.map((m) =>
+            m.id === evt.data.message_id ? { ...m, status: evt.data.status } : m))
+        }
       } else if (evt.event === 'pause') {
         refreshConversations()
       }
